@@ -5,10 +5,10 @@ import { useState } from "react"
 export function DashboardHeader() {
   const [userName] = useState(() => {
     if (typeof window === "undefined") return "User"
-    
+
     const session = localStorage.getItem("userSession")
     if (!session) return "User"
-    
+
     try {
       const user = JSON.parse(session)
       return user.name || "User"

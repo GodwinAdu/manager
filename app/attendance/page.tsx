@@ -256,80 +256,159 @@ export default function AttendancePage() {
                   No active users found. Add users from the Users page first.
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="min-w-[120px]">Employee</TableHead>
-                        <TableHead className="min-w-[80px]">Status</TableHead>
-                        <TableHead className="min-w-[100px]">Check-In</TableHead>
-                        <TableHead className="min-w-[100px]">Check-Out</TableHead>
-                        <TableHead className="min-w-[100px]">Hours</TableHead>
-                        <TableHead className="min-w-[150px]">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                  <TableBody>
+                <>
+                  {/* Mobile Card Layout */}
+                  <div className="block md:hidden space-y-4">
                     {attendanceList.map((record) => {
                       const hasCheckIn = !!record.checkInTime
                       const hasCheckOut = !!record.checkOutTime
                       const userId = typeof record.userId === "object" ? record.userId._id : record.userId
 
                       return (
-                        <TableRow key={record._id}>
-                          <TableCell className="font-medium">
-                            {typeof record.userId === "object" ? record.userId?.name : "Unknown"}
-                          </TableCell>
-                          <TableCell>
-                            <span
-                              className={`px-3 py-1 rounded-full text-xs font-medium ${
-                                record.status === "present"
-                                  ? "bg-green-100 text-green-800"
-                                  : record.status === "late"
-                                    ? "bg-yellow-100 text-yellow-800"
-                                    : "bg-red-100 text-red-800"
-                              }`}
-                            >
-                              {record.status.charAt(0).toUpperCase() + record.status.slice(1)}
-                            </span>
-                          </TableCell>
-                          <TableCell>
-                            {record.checkInTime ? new Date(record.checkInTime).toLocaleTimeString() : "-"}
-                          </TableCell>
-                          <TableCell>
-                            {record.checkOutTime ? new Date(record.checkOutTime).toLocaleTimeString() : "-"}
-                          </TableCell>
-                          <TableCell>{record.workingHours?.toFixed(2) || "0.00"} hrs</TableCell>
-                          <TableCell>
-                            <div className="flex flex-col sm:flex-row gap-1 sm:gap-2">
+                        <Card key={record._id} className="p-4">
+                          <div className="space-y-3">
+                            <div className="flex justify-between items-start">
+                              <h3 className="font-medium text-sm">
+                                {typeof record.userId === "object" ? record.userId?.name : "Unknown"}
+                              </h3>
+                              <span
+                                className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                  record.status === "present"
+                                    ? "bg-green-100 text-green-800"
+                                    : record.status === "late"
+                                      ? "bg-yellow-100 text-yellow-800"
+                                      : "bg-red-100 text-red-800"
+                                }`}
+                              >
+                                {record.status.charAt(0).toUpperCase() + record.status.slice(1)}
+                              </span>
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-2 text-xs">
+                              <div>
+                                <span className="text-muted-foreground">Check-In:</span>
+                                <div className="font-medium">
+                                  {record.checkInTime ? new Date(record.checkInTime).toLocaleTimeString() : "-"}
+                                </div>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground">Check-Out:</span>
+                                <div className="font-medium">
+                                  {record.checkOutTime ? new Date(record.checkOutTime).toLocaleTimeString() : "-"}
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <div className="text-xs">
+                              <span className="text-muted-foreground">Hours:</span>
+                              <span className="font-medium ml-1">{record.workingHours?.toFixed(2) || "0.00"} hrs</span>
+                            </div>
+                            
+                            <div className="flex flex-wrap gap-2">
                               {!hasCheckIn && (
                                 <>
-                                  <Button size="sm" onClick={() => handleCheckIn(currentUser?.role === "worker" ? undefined : typeof userId === "string" ? userId : undefined)} className="text-xs">
+                                  <Button size="sm" onClick={() => handleCheckIn(currentUser?.role === "worker" ? undefined : typeof userId === "string" ? userId : undefined)} className="text-xs flex-1">
                                     Check In
                                   </Button>
                                   {currentUser?.role === "admin" && (
-                                    <Button size="sm" variant="outline" onClick={() => handleMarkAbsent(typeof userId === "string" ? userId : "")} className="text-xs">
+                                    <Button size="sm" variant="outline" onClick={() => handleMarkAbsent(typeof userId === "string" ? userId : "")} className="text-xs flex-1">
                                       Absent
                                     </Button>
                                   )}
                                 </>
                               )}
                               {hasCheckIn && !hasCheckOut && (
-                                <Button size="sm" variant="outline" onClick={() => handleCheckOut(currentUser?.role === "worker" ? undefined : typeof userId === "string" ? userId : undefined)} className="text-xs">
+                                <Button size="sm" variant="outline" onClick={() => handleCheckOut(currentUser?.role === "worker" ? undefined : typeof userId === "string" ? userId : undefined)} className="text-xs w-full">
                                   Check Out
                                 </Button>
                               )}
                               {hasCheckIn && hasCheckOut && (
-                                <span className="text-xs text-muted-foreground">Completed</span>
+                                <span className="text-xs text-muted-foreground w-full text-center py-2">Completed</span>
                               )}
                             </div>
-                          </TableCell>
-                        </TableRow>
+                          </div>
+                        </Card>
                       )
                     })}
-                  </TableBody>
-                  </Table>
-                </div>
+                  </div>
+
+                  {/* Desktop Table Layout */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="min-w-[120px]">Employee</TableHead>
+                          <TableHead className="min-w-[80px]">Status</TableHead>
+                          <TableHead className="min-w-[100px]">Check-In</TableHead>
+                          <TableHead className="min-w-[100px]">Check-Out</TableHead>
+                          <TableHead className="min-w-[100px]">Hours</TableHead>
+                          <TableHead className="min-w-[150px]">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {attendanceList.map((record) => {
+                          const hasCheckIn = !!record.checkInTime
+                          const hasCheckOut = !!record.checkOutTime
+                          const userId = typeof record.userId === "object" ? record.userId._id : record.userId
+
+                          return (
+                            <TableRow key={record._id}>
+                              <TableCell className="font-medium">
+                                {typeof record.userId === "object" ? record.userId?.name : "Unknown"}
+                              </TableCell>
+                              <TableCell>
+                                <span
+                                  className={`px-3 py-1 rounded-full text-xs font-medium ${
+                                    record.status === "present"
+                                      ? "bg-green-100 text-green-800"
+                                      : record.status === "late"
+                                        ? "bg-yellow-100 text-yellow-800"
+                                        : "bg-red-100 text-red-800"
+                                  }`}
+                                >
+                                  {record.status.charAt(0).toUpperCase() + record.status.slice(1)}
+                                </span>
+                              </TableCell>
+                              <TableCell>
+                                {record.checkInTime ? new Date(record.checkInTime).toLocaleTimeString() : "-"}
+                              </TableCell>
+                              <TableCell>
+                                {record.checkOutTime ? new Date(record.checkOutTime).toLocaleTimeString() : "-"}
+                              </TableCell>
+                              <TableCell>{record.workingHours?.toFixed(2) || "0.00"} hrs</TableCell>
+                              <TableCell>
+                                <div className="flex flex-col sm:flex-row gap-1 sm:gap-2">
+                                  {!hasCheckIn && (
+                                    <>
+                                      <Button size="sm" onClick={() => handleCheckIn(currentUser?.role === "worker" ? undefined : typeof userId === "string" ? userId : undefined)} className="text-xs">
+                                        Check In
+                                      </Button>
+                                      {currentUser?.role === "admin" && (
+                                        <Button size="sm" variant="outline" onClick={() => handleMarkAbsent(typeof userId === "string" ? userId : "")} className="text-xs">
+                                          Absent
+                                        </Button>
+                                      )}
+                                    </>
+                                  )}
+                                  {hasCheckIn && !hasCheckOut && (
+                                    <Button size="sm" variant="outline" onClick={() => handleCheckOut(currentUser?.role === "worker" ? undefined : typeof userId === "string" ? userId : undefined)} className="text-xs">
+                                      Check Out
+                                    </Button>
+                                  )}
+                                  {hasCheckIn && hasCheckOut && (
+                                    <span className="text-xs text-muted-foreground">Completed</span>
+                                  )}
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          )
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </>
               )}
+             
             </CardContent>
           </Card>
         </main>
