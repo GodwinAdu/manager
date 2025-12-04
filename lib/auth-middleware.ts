@@ -1,16 +1,21 @@
 import { NextRequest, NextResponse } from "next/server"
 import { connectToDB } from "@/lib/mongoose"
+import { verifyToken } from "@/lib/jwt"
 import User, { type IUser } from "@/lib/models/user.models"
 
 export async function getAuthenticatedUser(request: NextRequest) {
   try {
-    const session = request.cookies.get("session")?.value
+    const token = request.cookies.get("session")?.value
 
-    if (!session) {
+    if (!token) {
       return null
     }
 
-    const sessionData = JSON.parse(session)
+    const sessionData = verifyToken(token)
+    if (!sessionData) {
+      return null
+    }
+
     await connectToDB()
     
     const user = await User.findById(sessionData.userId).select("-password")

@@ -1,6 +1,7 @@
 import User from "@/lib/models/user.models"
 import { connectToDB } from "@/lib/mongoose"
 import { verifyPassword } from "@/lib/auth"
+import { signToken } from "@/lib/jwt"
 import { type NextRequest, NextResponse } from "next/server"
 
 
@@ -32,14 +33,16 @@ export async function POST(request: NextRequest) {
       },
     })
 
+    const token = signToken({
+      userId: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+    })
+
     response.cookies.set(
       "session",
-      JSON.stringify({
-        userId: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-      }),
+      token,
       {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
