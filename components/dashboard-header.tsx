@@ -1,22 +1,21 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 
 export function DashboardHeader() {
-  const [userName, setUserName] = useState("")
-
-  useEffect(() => {
-    const session = typeof window !== "undefined" ? localStorage.getItem("userSession") : null
-
-    if (session) {
-      try {
-        const user = JSON.parse(session)
-        setUserName(user.name)
-      } catch (e) {
-        setUserName("User")
-      }
+  const [userName] = useState(() => {
+    if (typeof window === "undefined") return "User"
+    
+    const session = localStorage.getItem("userSession")
+    if (!session) return "User"
+    
+    try {
+      const user = JSON.parse(session)
+      return user.name || "User"
+    } catch {
+      return "User"
     }
-  }, [])
+  })
 
   return (
     <header className="glass-card border-b border-white/20 px-4 lg:px-6 py-4">

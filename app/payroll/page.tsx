@@ -9,9 +9,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 
+interface User {
+    _id: string
+    name: string
+    email: string
+}
+
 interface PayrollRecord {
     _id: string
-    userId: any
+    userId: User
     month: string
     baseSalary: number
     daysWorked: number

@@ -17,11 +17,17 @@ interface Savings {
   notes?: string
 }
 
+interface Analytics {
+  summary: {
+    profit: number
+  }
+}
+
 export default function SavingsPage() {
   const [savings, setSavings] = useState<Savings | null>(null)
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().split("T")[0].slice(0, 7))
   const [isLoading, setIsLoading] = useState(false)
-  const [analytics, setAnalytics] = useState<any>(null)
+  const [analytics, setAnalytics] = useState<Analytics | null>(null)
   const [formData, setFormData] = useState({
     savingsPercentage: "10",
     notes: "",

@@ -256,7 +256,7 @@ export default function ReportsPage() {
                                                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                                     ))}
                                                 </Pie>
-                                                <Tooltip formatter={(value: any) => [`GHS ${value.toLocaleString()}`, 'Amount']} />
+                                                <Tooltip formatter={(value: number) => [`GHS ${value.toLocaleString()}`, 'Amount']} />
                                             </PieChart>
                                         </ResponsiveContainer>
                                     ) : (

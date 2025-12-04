@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label"
 
 interface User {
   _id: string
+  id?: string
   name: string
   email: string
   role: string
@@ -20,7 +21,7 @@ interface User {
 interface AttendanceRecord {
   _id: string
   odbc_id?: string
-  userId: User
+  userId: User | string
   date: string
   checkInTime?: string
   checkOutTime?: string
@@ -128,13 +129,16 @@ export default function AttendancePage() {
   const getAttendanceList = () => {
     if (currentUser?.role === "worker") {
       // For workers, show only their own attendance
-      const userAttendance = attendance.find(a => a.userId?._id === currentUser.id || a.userId === currentUser.id)
+      const userAttendance = attendance.find(a => {
+        const userId = typeof a.userId === "object" ? a.userId._id : a.userId
+        return userId === (currentUser.id || currentUser._id)
+      })
       if (userAttendance) {
         return [userAttendance]
       }
       // Return placeholder if no attendance record
       return [{
-        _id: `temp-${currentUser.id}`,
+        _id: `temp-${currentUser.id || currentUser._id}`,
         userId: currentUser,
         date: selectedDate,
         status: "absent" as const,
@@ -143,7 +147,10 @@ export default function AttendancePage() {
     }
     
     // For admins, show all workers
-    const attendanceMap = new Map(attendance.map((a) => [a.userId?._id || a.userId, a]))
+    const attendanceMap = new Map(attendance.map((a) => {
+      const userId = typeof a.userId === "object" ? a.userId._id : a.userId
+      return [userId, a]
+    }))
     return workers.map((worker) => {
       const record = attendanceMap.get(worker._id)
       if (record) {
@@ -265,7 +272,7 @@ export default function AttendancePage() {
                     {attendanceList.map((record) => {
                       const hasCheckIn = !!record.checkInTime
                       const hasCheckOut = !!record.checkOutTime
-                      const userId = record.userId?._id || record.userId
+                      const userId = typeof record.userId === "object" ? record.userId._id : record.userId
 
                       return (
                         <TableRow key={record._id}>
@@ -296,18 +303,18 @@ export default function AttendancePage() {
                             <div className="flex flex-col sm:flex-row gap-1 sm:gap-2">
                               {!hasCheckIn && (
                                 <>
-                                  <Button size="sm" onClick={() => handleCheckIn(currentUser?.role === "worker" ? undefined : userId)} className="text-xs">
+                                  <Button size="sm" onClick={() => handleCheckIn(currentUser?.role === "worker" ? undefined : typeof userId === "string" ? userId : undefined)} className="text-xs">
                                     Check In
                                   </Button>
                                   {currentUser?.role === "admin" && (
-                                    <Button size="sm" variant="outline" onClick={() => handleMarkAbsent(userId)} className="text-xs">
+                                    <Button size="sm" variant="outline" onClick={() => handleMarkAbsent(typeof userId === "string" ? userId : "")} className="text-xs">
                                       Absent
                                     </Button>
                                   )}
                                 </>
                               )}
                               {hasCheckIn && !hasCheckOut && (
-                                <Button size="sm" variant="outline" onClick={() => handleCheckOut(currentUser?.role === "worker" ? undefined : userId)} className="text-xs">
+                                <Button size="sm" variant="outline" onClick={() => handleCheckOut(currentUser?.role === "worker" ? undefined : typeof userId === "string" ? userId : undefined)} className="text-xs">
                                   Check Out
                                 </Button>
                               )}

@@ -9,12 +9,28 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
+interface Analytics {
+  summary: {
+    profit: number
+  }
+}
+
+interface Allocation {
+  allocations: AllocationItem[]
+}
+
+interface AllocationItem {
+  category: string
+  amount: number
+  description: string
+}
+
 export default function ProfitAllocationPage() {
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().split("T")[0].slice(0, 7))
-  const [analytics, setAnalytics] = useState<any>(null)
-  const [allocation, setAllocation] = useState<any>(null)
+  const [analytics, setAnalytics] = useState<Analytics | null>(null)
+  const [allocation, setAllocation] = useState<Allocation | null>(null)
   const [isLoading, setIsLoading] = useState(false)
-  const [allocations, setAllocations] = useState([
+  const [allocations, setAllocations] = useState<AllocationItem[]>([
     { category: "", amount: 0, description: "" }
   ])
 
@@ -50,7 +66,7 @@ export default function ProfitAllocationPage() {
     setAllocations([...allocations, { category: "", amount: 0, description: "" }])
   }
 
-  const updateAllocation = (index: number, field: string, value: any) => {
+  const updateAllocation = (index: number, field: keyof AllocationItem, value: string | number) => {
     const updated = [...allocations]
     updated[index] = { ...updated[index], [field]: value }
     setAllocations(updated)

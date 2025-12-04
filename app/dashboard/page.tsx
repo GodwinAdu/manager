@@ -93,16 +93,21 @@ export default function DashboardPage() {
           // Combine sales and expenses data for chart
           const salesData = analytics.salesByDay || []
           const expensesData = analytics.expensesByDay || []
-          
+
+          interface DayDataItem {
+            day: string
+            amount: number
+          }
+
           // Create a map of all unique days
           const dayMap = new Map()
-          
-          salesData.forEach((item: any) => {
+
+          salesData.forEach((item: DayDataItem) => {
             const day = new Date(item.day).toLocaleDateString("en-US", { weekday: "short" })
             dayMap.set(item.day, { day, sales: item.amount, expenses: 0 })
           })
-          
-          expensesData.forEach((item: any) => {
+
+          expensesData.forEach((item: DayDataItem) => {
             const day = new Date(item.day).toLocaleDateString("en-US", { weekday: "short" })
             if (dayMap.has(item.day)) {
               dayMap.get(item.day).expenses = item.amount
@@ -110,12 +115,12 @@ export default function DashboardPage() {
               dayMap.set(item.day, { day, sales: 0, expenses: item.amount })
             }
           })
-          
+
           const chartFromData = Array.from(dayMap.values())
-            .sort((a, b) => new Date(Object.keys(dayMap).find(key => dayMap.get(key) === a) || '').getTime() - 
-                           new Date(Object.keys(dayMap).find(key => dayMap.get(key) === b) || '').getTime())
+            .sort((a, b) => new Date(Object.keys(dayMap).find(key => dayMap.get(key) === a) || '').getTime() -
+              new Date(Object.keys(dayMap).find(key => dayMap.get(key) === b) || '').getTime())
             .slice(-7)
-          
+
           setChartData(chartFromData)
         }
       } catch (error) {

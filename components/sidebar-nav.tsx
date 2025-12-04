@@ -19,22 +19,14 @@ const navItems = [
     { href: "/profile", label: "Profile", icon: User },
 ]
 
-export function SidebarNav() {
-    const pathname = usePathname()
-    const router = useRouter()
-    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+interface NavContentProps {
+    pathname: string
+    setIsMobileMenuOpen: (open: boolean) => void
+    handleLogout: () => void
+}
 
-    const handleLogout = async () => {
-        try {
-            await fetch('/api/auth/logout', { method: 'POST' })
-            localStorage.removeItem('userSession')
-            router.push('/')
-        } catch (error) {
-            console.error('Logout failed:', error)
-        }
-    }
-
-    const NavContent = () => (
+function NavContent({ pathname, setIsMobileMenuOpen, handleLogout }: NavContentProps) {
+    return (
         <>
             <div className="px-6 py-8 border-b border-white/10">
                 <div className="flex items-center justify-between">
@@ -86,6 +78,22 @@ export function SidebarNav() {
             </div>
         </>
     )
+}
+
+export function SidebarNav() {
+    const pathname = usePathname()
+    const router = useRouter()
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+
+    const handleLogout = async () => {
+        try {
+            await fetch('/api/auth/logout', { method: 'POST' })
+            localStorage.removeItem('userSession')
+            router.push('/')
+        } catch (error) {
+            console.error('Logout failed:', error)
+        }
+    }
 
     return (
         <>
@@ -105,7 +113,7 @@ export function SidebarNav() {
 
             {/* Desktop Sidebar */}
             <nav className="hidden lg:flex w-64 sidebar-modern text-white min-h-screen flex-col">
-                <NavContent />
+                <NavContent pathname={pathname} setIsMobileMenuOpen={setIsMobileMenuOpen} handleLogout={handleLogout} />
             </nav>
 
             {/* Mobile Sidebar Overlay */}
@@ -113,7 +121,7 @@ export function SidebarNav() {
                 <div className="lg:hidden fixed inset-0 z-40">
                     <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} />
                     <nav className="absolute left-0 top-0 w-72 sidebar-modern text-white min-h-screen flex flex-col shadow-2xl">
-                        <NavContent />
+                        <NavContent pathname={pathname} setIsMobileMenuOpen={setIsMobileMenuOpen} handleLogout={handleLogout} />
                     </nav>
                 </div>
             )}
