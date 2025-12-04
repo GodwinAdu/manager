@@ -5,15 +5,35 @@ import Sale from "@/lib/models/sales.models"
 import { connectToDB } from "@/lib/mongoose"
 import { requireRole } from "@/lib/auth-middleware"
 import { type NextRequest, NextResponse } from "next/server"
+import { type IUser } from "@/lib/models/user.models"
 
-export const GET = requireRole(["admin"])(async (request: NextRequest, user: any) => {
+interface SaleDocument {
+    amount: number
+    date: Date
+}
+
+interface ExpenseDocument {
+    amount: number
+    category: string
+    date: Date
+}
+
+interface AttendanceDocument {
+    status: "present" | "absent" | "late"
+}
+
+interface PayrollDocument {
+    totalPayable: number
+}
+
+export const GET = requireRole(["admin"])(async (request: NextRequest, user: IUser) => {
     try {
         await connectToDB()
 
         const startDate = request.nextUrl.searchParams.get("startDate")
         const endDate = request.nextUrl.searchParams.get("endDate")
 
-        let dateQuery = {}
+        let dateQuery: Record<string, unknown> = {}
         if (startDate && endDate) {
             const start = new Date(startDate)
             const end = new Date(endDate)
@@ -28,19 +48,19 @@ export const GET = requireRole(["admin"])(async (request: NextRequest, user: any
 
         // Sales data
         const sales = await Sale.find(dateQuery)
-        const totalSales = sales.reduce((sum: number, s: any) => sum + s.amount, 0)
+        const totalSales = sales.reduce((sum: number, s: SaleDocument) => sum + s.amount, 0)
         const salesByDay: Record<string, number> = {}
-        sales.forEach((s: any) => {
+        sales.forEach((s: SaleDocument) => {
             const day = s.date.toLocaleDateString()
             salesByDay[day] = (salesByDay[day] || 0) + s.amount
         })
 
         // Expenses data
         const expenses = await Expense.find(dateQuery)
-        const totalExpenses = expenses.reduce((sum: number, e: any) => sum + e.amount, 0)
+        const totalExpenses = expenses.reduce((sum: number, e: ExpenseDocument) => sum + e.amount, 0)
         const expensesByCategory: Record<string, number> = {}
         const expensesByDay: Record<string, number> = {}
-        expenses.forEach((e: any) => {
+        expenses.forEach((e: ExpenseDocument) => {
             expensesByCategory[e.category] = (expensesByCategory[e.category] || 0) + e.amount
             const day = e.date.toLocaleDateString()
             expensesByDay[day] = (expensesByDay[day] || 0) + e.amount
@@ -57,12 +77,12 @@ export const GET = requireRole(["admin"])(async (request: NextRequest, user: any
 
         // All attendance records in date range
         const attendanceRecords = await Attendance.find(dateQuery)
-        const presentCount = todayAttendance.filter((a: any) => a.status === "present" || a.status === "late").length
-        const absentCount = todayAttendance.filter((a: any) => a.status === "absent").length
-        const lateCount = todayAttendance.filter((a: any) => a.status === "late").length
+        const presentCount = todayAttendance.filter((a: AttendanceDocument) => a.status === "present" || a.status === "late").length
+        const absentCount = todayAttendance.filter((a: AttendanceDocument) => a.status === "absent").length
+        const lateCount = todayAttendance.filter((a: AttendanceDocument) => a.status === "late").length
 
         // Payroll data - use month field for payroll
-        let payrollQuery = {}
+        let payrollQuery: Record<string, unknown> = {}
         if (startDate && endDate) {
             payrollQuery = {
                 month: {
@@ -72,7 +92,7 @@ export const GET = requireRole(["admin"])(async (request: NextRequest, user: any
             }
         }
         const payrollRecords = await Payroll.find(payrollQuery)
-        const totalPayroll = payrollRecords.reduce((sum: number, p: any) => sum + p.totalPayable, 0)
+        const totalPayroll = payrollRecords.reduce((sum: number, p: PayrollDocument) => sum + p.totalPayable, 0)
 
         // Calculate profit (Sales - Expenses - Payroll)
         const profit = totalSales - totalExpenses - totalPayroll

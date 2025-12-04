@@ -2,16 +2,16 @@ import Attendance from "@/lib/models/attendance.models"
 import { connectToDB } from "@/lib/mongoose"
 import { requireAuth } from "@/lib/auth-middleware"
 import { type NextRequest, NextResponse } from "next/server"
+import { type IUser } from "@/lib/models/user.models"
 
-
-export const GET = requireAuth(async (request: NextRequest, user: any) => {
+export const GET = requireAuth(async (request: NextRequest, user: IUser) => {
   try {
     await connectToDB()
 
     const date = request.nextUrl.searchParams.get("date")
     const userId = request.nextUrl.searchParams.get("userId")
 
-    const query: any = {}
+    const query: Record<string, unknown> = {}
     if (date) {
       const startDate = new Date(date)
       startDate.setHours(0, 0, 0, 0)
@@ -36,7 +36,7 @@ export const GET = requireAuth(async (request: NextRequest, user: any) => {
   }
 })
 
-export const POST = requireAuth(async (request: NextRequest, user: any) => {
+export const POST = requireAuth(async (request: NextRequest, user: IUser) => {
   try {
     await connectToDB()
 

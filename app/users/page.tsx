@@ -28,6 +28,8 @@ interface User {
   phone?: string
   role: "admin" | "worker"
   salary?: number
+  payrollType?: "monthly_salary" | "daily_rate"
+  dailyRate?: number
   status: "active" | "inactive"
   createdAt: string
 }
@@ -154,7 +156,7 @@ export default function UsersPage() {
     setError("")
 
     try {
-      const updateData: any = {
+      const updateData: Record<string, unknown> = {
         userId: editingUser._id,
         name: formData.name,
         email: formData.email,

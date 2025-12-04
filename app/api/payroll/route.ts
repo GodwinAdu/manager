@@ -2,16 +2,16 @@ import { type NextRequest, NextResponse } from "next/server"
 import { connectToDB } from "@/lib/mongoose"
 import { requireAuth, requireRole } from "@/lib/auth-middleware"
 import Payroll from "@/lib/models/payroll.models"
-import User from "@/lib/models/user.models"
+import User, { IUser } from "@/lib/models/user.models"
 
-export const GET = requireAuth(async (request: NextRequest, user: any) => {
+export const GET = requireAuth(async (request: NextRequest, user: IUser) => {
   try {
     await connectToDB()
 
     const month = request.nextUrl.searchParams.get("month")
     const status = request.nextUrl.searchParams.get("status")
 
-    const query: any = {}
+    const query: Record<string, unknown> = {}
     if (month) {
       const date = new Date(month)
       const startOfMonth = new Date(date.getFullYear(), date.getMonth(), 1)
@@ -33,7 +33,7 @@ export const GET = requireAuth(async (request: NextRequest, user: any) => {
   }
 })
 
-export const POST = requireRole(["admin"])(async (request: NextRequest, user: any) => {
+export const POST = requireRole(["admin"])(async (request: NextRequest, user: IUser) => {
   try {
     await connectToDB()
 
@@ -91,7 +91,7 @@ export const POST = requireRole(["admin"])(async (request: NextRequest, user: an
   }
 })
 
-export const PATCH = requireRole(["admin"])(async (request: NextRequest, user: any) => {
+export const PATCH = requireRole(["admin"])(async (request: NextRequest, user:IUser) => {
   try {
     await connectToDB()
 
@@ -113,7 +113,7 @@ export const PATCH = requireRole(["admin"])(async (request: NextRequest, user: a
   }
 })
 
-export const DELETE = requireRole(["admin"])(async (request: NextRequest, user: any) => {
+export const DELETE = requireRole(["admin"])(async (request: NextRequest, user: IUser) => {
   try {
     await connectToDB()
 

@@ -12,7 +12,7 @@ export const GET = requireRole(["admin"])(async (request: NextRequest, _user: IU
     const endDate = request.nextUrl.searchParams.get("endDate")
     const userId = request.nextUrl.searchParams.get("userId")
 
-    const query: any = {}
+    const query: Record<string, unknown> = {}
     if (startDate && endDate) {
       query.date = {
         $gte: new Date(startDate),

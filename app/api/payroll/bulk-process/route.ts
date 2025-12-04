@@ -3,10 +3,10 @@ import { connectToDB } from "@/lib/mongoose"
 import { requireRole } from "@/lib/auth-middleware"
 import Payroll from "@/lib/models/payroll.models"
 import Attendance from "@/lib/models/attendance.models"
-import User from "@/lib/models/user.models"
+import User, { IUser } from "@/lib/models/user.models"
 import PayrollSettings from "@/lib/models/payroll-settings.models"
 
-export const POST = requireRole(["admin"])(async (request: NextRequest, user: any) => {
+export const POST = requireRole(["admin"])(async (request: NextRequest, user: IUser) => {
   try {
     await connectToDB()
 
