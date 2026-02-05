@@ -12,6 +12,8 @@ export const GET = requireRole(["admin"])(async (request: NextRequest, _user: IU
     const endDate = request.nextUrl.searchParams.get("endDate")
     const userId = request.nextUrl.searchParams.get("userId")
 
+    console.log('GET /api/sales - Query params:', { startDate, endDate, userId })
+
     const query: Record<string, unknown> = {}
     if (startDate && endDate) {
       query.date = {
@@ -21,10 +23,14 @@ export const GET = requireRole(["admin"])(async (request: NextRequest, _user: IU
     }
     if (userId) query.userId = userId
 
+    console.log('MongoDB query:', query)
     const sales = await Sales.find(query).populate("userId", "name email").sort({ date: -1 })
+    console.log('Sales found:', sales.length)
+    console.log('Sales data:', JSON.stringify(sales, null, 2))
 
     return NextResponse.json(sales)
   } catch (error) {
+    console.error('Error in GET /api/sales:', error)
     return NextResponse.json({ error: "Failed to fetch sales" }, { status: 500 })
   }
 })

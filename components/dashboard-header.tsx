@@ -1,21 +1,29 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 
 export function DashboardHeader() {
-  const [userName] = useState(() => {
-    if (typeof window === "undefined") return "User"
+  const [userName, setUserName] = useState("User")
+  const [currentDate, setCurrentDate] = useState("")
 
+  useEffect(() => {
     const session = localStorage.getItem("userSession")
-    if (!session) return "User"
-
-    try {
-      const user = JSON.parse(session)
-      return user.name || "User"
-    } catch {
-      return "User"
+    if (session) {
+      try {
+        const user = JSON.parse(session)
+        setUserName(user.name || "User")
+      } catch {
+        setUserName("User")
+      }
     }
-  })
+
+    setCurrentDate(new Date().toLocaleDateString("en-US", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    }))
+  }, [])
 
   return (
     <header className="glass-card border-b border-white/20 px-4 lg:px-6 py-4">
@@ -29,17 +37,12 @@ export function DashboardHeader() {
               Welcome, {userName}
             </h1>
             <div className="text-xs text-slate-500 lg:hidden">
-              {new Date().toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
+              {currentDate && new Date().toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
             </div>
           </div>
         </div>
         <div className="text-xs lg:text-sm text-slate-500 hidden lg:block">
-          {new Date().toLocaleDateString("en-US", {
-            weekday: "long",
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          })}
+          {currentDate}
         </div>
       </div>
     </header>

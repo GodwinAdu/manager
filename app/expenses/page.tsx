@@ -35,15 +35,17 @@ export default function ExpensesPage() {
     const [editingExpense, setEditingExpense] = useState<Expense | null>(null)
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
     const [editCategory, setEditCategory] = useState("")
+    const [startDate, setStartDate] = useState("2025-01-01")
+    const [endDate, setEndDate] = useState("2027-12-31")
 
     const fetchExpenses = async () => {
         setIsLoading(true)
         try {
-            const today = new Date()
-            const firstDay = new Date(today.getFullYear(), today.getMonth(), 1)
-            const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0)
+            const start = new Date(startDate)
+            const end = new Date(endDate)
+            end.setHours(23, 59, 59, 999)
 
-            const response = await fetch(`/api/expenses?startDate=${firstDay.toISOString()}&endDate=${lastDay.toISOString()}`)
+            const response = await fetch(`/api/expenses?startDate=${start.toISOString()}&endDate=${end.toISOString()}`)
             if (response.ok) {
                 const data = await response.json()
                 setExpenses(data)
@@ -110,7 +112,7 @@ export default function ExpensesPage() {
 
     useEffect(() => {
         fetchExpenses()
-    }, [])
+    }, [startDate, endDate])
 
     return (
         <div className="flex">

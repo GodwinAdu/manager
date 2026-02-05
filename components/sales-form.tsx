@@ -21,7 +21,8 @@ export function SalesForm({ onSuccess }: SalesFormProps) {
     setIsLoading(true)
     setError("")
 
-    const formData = new FormData(e.currentTarget)
+    const form = e.currentTarget
+    const formData = new FormData(form)
     const session = localStorage.getItem("userSession")
     const user = session ? JSON.parse(session) : null
 
@@ -37,13 +38,14 @@ export function SalesForm({ onSuccess }: SalesFormProps) {
       })
 
       if (response.ok) {
-        e.currentTarget.reset()
-        onSuccess()
+        form.reset()
+        await onSuccess()
       } else {
         const data = await response.json()
         setError(data.error || "Failed to add sale")
       }
     } catch (err) {
+      console.error('Error adding sale:', err)
       setError("An error occurred")
     } finally {
       setIsLoading(false)

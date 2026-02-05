@@ -4,6 +4,8 @@ import { useEffect, useState } from "react"
 import { SidebarNav } from "@/components/sidebar-nav"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import {
   BarChart,
   Bar,
@@ -34,6 +36,14 @@ interface ChartData {
 }
 
 export default function DashboardPage() {
+  const [startDate, setStartDate] = useState(() => {
+    const now = new Date()
+    return new Date(now.getFullYear(), 0, 1).toISOString().split("T")[0]
+  })
+  const [endDate, setEndDate] = useState(() => {
+    const now = new Date()
+    return new Date(now.getFullYear(), 11, 31).toISOString().split("T")[0]
+  })
   const [stats, setStats] = useState<DashboardStats>({
     totalSales: 0,
     totalExpenses: 0,
@@ -49,16 +59,20 @@ export default function DashboardPage() {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const startDate = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
-        const endDate = new Date()
+        const start = new Date(startDate)
+        const end = new Date(endDate)
+
+        console.log('Dashboard fetching data with dates:', { startDate, endDate })
 
         const [analyticsResponse, usersResponse, savingsResponse] = await Promise.all([
           fetch(
-            `/api/analytics?startDate=${startDate.toISOString().split("T")[0]}&endDate=${endDate.toISOString().split("T")[0]}`,
+            `/api/analytics?startDate=${start.toISOString().split("T")[0]}&endDate=${end.toISOString().split("T")[0]}`,
           ),
           fetch("/api/users?role=worker&status=active"),
-          fetch(`/api/savings?month=${startDate.toISOString()}`),
-        ])
+          fetch(`/api/savings?month=${start.toISOString()}`),
+ ,,,       ])
+
+        console.log('Analytics response:', analyticsResponse.status)
 
         let employeeCount = 0
         if (usersResponse.ok) {
@@ -76,6 +90,7 @@ export default function DashboardPage() {
 
         if (analyticsResponse.ok) {
           const analytics = await analyticsResponse.json()
+          console.log('Analytics data:', analytics)
 
           const profit = analytics.summary.totalSales - analytics.summary.totalExpenses - analytics.summary.totalPayroll
           const currentSavings = profit > 0 ? (profit * savingsPercentage) / 100 : 0
@@ -122,6 +137,8 @@ export default function DashboardPage() {
             .slice(-7)
 
           setChartData(chartFromData)
+        } else {
+          console.error('Analytics response not OK:', await analyticsResponse.text())
         }
       } catch (error) {
         console.error("Failed to fetch dashboard data", error)
@@ -131,7 +148,7 @@ export default function DashboardPage() {
     }
 
     fetchDashboardData()
-  }, [])
+  }, [startDate, endDate])
 
   return (
     <div className="flex">
@@ -139,6 +156,34 @@ export default function DashboardPage() {
       <div className="flex-1 lg:ml-0">
         <DashboardHeader />
         <main className="p-4 lg:p-6 space-y-4 lg:space-y-6 pt-20 lg:pt-6">
+          <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4 mb-6">
+            <div>
+              <h2 className="text-xl lg:text-2xl font-bold">Dashboard</h2>
+              <p className="text-muted-foreground text-sm lg:text-base">Overview of your business</p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div>
+                <Label htmlFor="start-date" className="text-sm">From</Label>
+                <Input
+                  id="start-date"
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="mt-1 text-sm"
+                />
+              </div>
+              <div>
+                <Label htmlFor="end-date" className="text-sm">To</Label>
+                <Input
+                  id="end-date"
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="mt-1 text-sm"
+                />
+              </div>
+            </div>
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <div className="stat-card rounded-xl p-6">
               <div className="flex items-center justify-between mb-4">
@@ -153,7 +198,7 @@ export default function DashboardPage() {
               <div className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
                 GHS {stats.totalSales.toLocaleString()}
               </div>
-              <p className="text-xs text-slate-500 mt-2">This month</p>
+              <p className="text-xs text-slate-500 mt-2">{new Date(startDate).toLocaleDateString()} - {new Date(endDate).toLocaleDateString()}</p>
             </div>
 
             <div className="stat-card rounded-xl p-6">
@@ -169,7 +214,7 @@ export default function DashboardPage() {
               <div className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-red-600 to-rose-600 bg-clip-text text-transparent">
                 GHS {stats.totalExpenses.toLocaleString()}
               </div>
-              <p className="text-xs text-slate-500 mt-2">This month</p>
+              <p className="text-xs text-slate-500 mt-2">{new Date(startDate).toLocaleDateString()} - {new Date(endDate).toLocaleDateString()}</p>
             </div>
 
             <div className="stat-card rounded-xl p-6">

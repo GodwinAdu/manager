@@ -36,10 +36,13 @@ export default function SavingsPage() {
   const fetchSavings = async (month: string) => {
     setIsLoading(true)
     try {
+      console.log('Fetching savings for month:', month)
       // Fetch savings data
       const savingsResponse = await fetch(`/api/savings?month=${month}`)
+      console.log('Savings response:', savingsResponse.status)
       if (savingsResponse.ok) {
         const savingsData = await savingsResponse.json()
+        console.log('Savings data:', savingsData)
         setSavings(savingsData.savings)
         if (savingsData.savings) {
           setFormData({
@@ -57,9 +60,12 @@ export default function SavingsPage() {
       // Fetch analytics data for the month
       const startDate = new Date(month + "-01")
       const endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0)
+      console.log('Fetching analytics:', { startDate, endDate })
       const analyticsResponse = await fetch(`/api/analytics?startDate=${startDate.toISOString().split('T')[0]}&endDate=${endDate.toISOString().split('T')[0]}`)
+      console.log('Analytics response:', analyticsResponse.status)
       if (analyticsResponse.ok) {
         const analyticsData = await analyticsResponse.json()
+        console.log('Analytics data:', analyticsData)
         setAnalytics(analyticsData)
       }
     } catch (error) {

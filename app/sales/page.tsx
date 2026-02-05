@@ -14,7 +14,11 @@ import { Edit, Trash2 } from "lucide-react"
 
 interface Sale {
   _id: string
-  userId: any
+  userId: {
+    _id: string
+    name: string
+    email: string
+  }
   date: string
   amount: number
   clientName: string
@@ -27,10 +31,8 @@ export default function SalesPage() {
   const [totalSales, setTotalSales] = useState(0)
   const [editingSale, setEditingSale] = useState<Sale | null>(null)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
-  const [startDate, setStartDate] = useState(
-    new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split("T")[0]
-  )
-  const [endDate, setEndDate] = useState(new Date().toISOString().split("T")[0])
+  const [startDate, setStartDate] = useState("2025-01-01")
+  const [endDate, setEndDate] = useState("2027-12-31")
 
   const fetchSales = async () => {
     setIsLoading(true)
@@ -39,11 +41,17 @@ export default function SalesPage() {
       const end = new Date(endDate)
       end.setHours(23, 59, 59, 999)
 
+      console.log('Fetching sales with date range:', { startDate, endDate, start: start.toISOString(), end: end.toISOString() })
       const response = await fetch(`/api/sales?startDate=${start.toISOString()}&endDate=${end.toISOString()}`)
+      console.log('Response status:', response.status, response.ok)
       if (response.ok) {
         const data = await response.json()
+        console.log('Sales data received:', data)
+        console.log('Number of sales:', data.length)
         setSales(data)
         setTotalSales(data.reduce((sum: number, s: Sale) => sum + s.amount, 0))
+      } else {
+        console.error('Response not OK:', await response.text())
       }
     } catch (error) {
       console.error("Failed to fetch sales", error)

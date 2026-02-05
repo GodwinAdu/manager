@@ -31,7 +31,7 @@ export const connectToDB = async () => {
 
     // Initialize a new connection if not already cached.
     cached.Promise = cached.Promise || mongoose.connect(MONGODB_URL, {
-        dbName: "Manager", // Specify the database name.
+        dbName: "Gica", // Specify the database name.
         bufferCommands: false, // Disable Mongoose buffering commands.
         serverSelectionTimeoutMS: 100000, // 30 seconds timeout for server selection.
     });
