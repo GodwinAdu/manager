@@ -37,6 +37,8 @@ export default function AuthPage() {
       if (response.ok) {
         const data = await response.json()
         localStorage.setItem("userSession", JSON.stringify(data.user))
+        // Set cookie for middleware
+        document.cookie = `authToken=${data.token || 'authenticated'}; path=/; max-age=86400; SameSite=Strict`
         router.push("/dashboard")
       } else {
         const data = await response.json()
