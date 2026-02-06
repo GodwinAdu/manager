@@ -25,7 +25,14 @@ interface Analytics {
 
 export default function SavingsPage() {
   const [savings, setSavings] = useState<Savings | null>(null)
-  const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().split("T")[0].slice(0, 7))
+  const [startDate, setStartDate] = useState(() => {
+    const now = new Date()
+    return new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0]
+  })
+  const [endDate, setEndDate] = useState(() => {
+    const now = new Date()
+    return new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split("T")[0]
+  })
   const [isLoading, setIsLoading] = useState(false)
   const [analytics, setAnalytics] = useState<Analytics | null>(null)
   const [formData, setFormData] = useState({
@@ -33,35 +40,16 @@ export default function SavingsPage() {
     notes: "",
   })
 
-  const fetchSavings = async (month: string) => {
+  const fetchSavings = async () => {
     setIsLoading(true)
     try {
-      console.log('Fetching savings for month:', month)
-      // Fetch savings data
-      const savingsResponse = await fetch(`/api/savings?month=${month}`)
-      console.log('Savings response:', savingsResponse.status)
-      if (savingsResponse.ok) {
-        const savingsData = await savingsResponse.json()
-        console.log('Savings data:', savingsData)
-        setSavings(savingsData.savings)
-        if (savingsData.savings) {
-          setFormData({
-            savingsPercentage: savingsData.savings.savingsPercentage.toString(),
-            notes: savingsData.savings.notes || "",
-          })
-        } else {
-          setFormData({
-            savingsPercentage: "10",
-            notes: "",
-          })
-        }
-      }
+      console.log('Fetching savings for date range:', { startDate, endDate })
 
-      // Fetch analytics data for the month
-      const startDate = new Date(month + "-01")
-      const endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0)
-      console.log('Fetching analytics:', { startDate, endDate })
-      const analyticsResponse = await fetch(`/api/analytics?startDate=${startDate.toISOString().split('T')[0]}&endDate=${endDate.toISOString().split('T')[0]}`)
+      // Fetch analytics data for the date range
+      const start = new Date(startDate)
+      const end = new Date(endDate)
+      console.log('Fetching analytics:', { start, end })
+      const analyticsResponse = await fetch(`/api/analytics?startDate=${start.toISOString().split('T')[0]}&endDate=${end.toISOString().split('T')[0]}`)
       console.log('Analytics response:', analyticsResponse.status)
       if (analyticsResponse.ok) {
         const analyticsData = await analyticsResponse.json()
@@ -84,7 +72,7 @@ export default function SavingsPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          month: selectedMonth,
+          month: startDate,
           totalRevenue: analytics?.summary?.profit || 0,
           savingsPercentage: parseFloat(formData.savingsPercentage),
           notes: formData.notes,
@@ -92,7 +80,7 @@ export default function SavingsPage() {
       })
 
       if (response.ok) {
-        fetchSavings(selectedMonth)
+        fetchSavings()
         alert("Savings updated successfully!")
       } else {
         alert("Failed to update savings")
@@ -106,8 +94,8 @@ export default function SavingsPage() {
   }
 
   useEffect(() => {
-    fetchSavings(selectedMonth)
-  }, [selectedMonth])
+    fetchSavings()
+  }, [startDate, endDate])
 
   const currentProfit = analytics?.summary?.profit || 0
   const savingsAmount = currentProfit * (parseFloat(formData.savingsPercentage) || 0) / 100
@@ -121,17 +109,29 @@ export default function SavingsPage() {
           <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
             <div>
               <h2 className="text-xl lg:text-2xl font-bold">Company Savings</h2>
-              <p className="text-muted-foreground text-sm lg:text-base">Manage monthly savings and reserves</p>
+              <p className="text-muted-foreground text-sm lg:text-base">Manage savings and reserves</p>
             </div>
-            <div>
-              <Label htmlFor="month-select" className="text-sm">Month</Label>
-              <Input
-                id="month-select"
-                type="month"
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(e.target.value)}
-                className="mt-1 text-sm"
-              />
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div>
+                <Label htmlFor="start-date" className="text-sm">From</Label>
+                <Input
+                  id="start-date"
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="mt-1 text-sm"
+                />
+              </div>
+              <div>
+                <Label htmlFor="end-date" className="text-sm">To</Label>
+                <Input
+                  id="end-date"
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="mt-1 text-sm"
+                />
+              </div>
             </div>
           </div>
 
@@ -269,9 +269,9 @@ export default function SavingsPage() {
               <h3 className="text-lg font-semibold text-slate-800 mb-4">Savings Summary</h3>
               <div className="space-y-4">
                 <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
-                  <span className="text-sm text-slate-600">Month:</span>
+                  <span className="text-sm text-slate-600">Period:</span>
                   <span className="font-medium">
-                    {new Date(selectedMonth).toLocaleDateString("en-US", { year: "numeric", month: "long" })}
+                    {new Date(startDate).toLocaleDateString()} - {new Date(endDate).toLocaleDateString()}
                   </span>
                 </div>
 
