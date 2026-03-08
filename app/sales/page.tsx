@@ -31,8 +31,14 @@ export default function SalesPage() {
   const [totalSales, setTotalSales] = useState(0)
   const [editingSale, setEditingSale] = useState<Sale | null>(null)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
-  const [startDate, setStartDate] = useState("2025-01-01")
-  const [endDate, setEndDate] = useState("2027-12-31")
+  const [startDate, setStartDate] = useState(() => {
+    const now = new Date()
+    return new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0]
+  })
+  const [endDate, setEndDate] = useState(() => {
+    const now = new Date()
+    return new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split("T")[0]
+  })
 
   const fetchSales = async () => {
     setIsLoading(true)

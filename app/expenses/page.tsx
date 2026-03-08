@@ -35,8 +35,14 @@ export default function ExpensesPage() {
     const [editingExpense, setEditingExpense] = useState<Expense | null>(null)
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
     const [editCategory, setEditCategory] = useState("")
-    const [startDate, setStartDate] = useState("2025-01-01")
-    const [endDate, setEndDate] = useState("2027-12-31")
+    const [startDate, setStartDate] = useState(() => {
+        const now = new Date()
+        return new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0]
+    })
+    const [endDate, setEndDate] = useState(() => {
+        const now = new Date()
+        return new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split("T")[0]
+    })
 
     const fetchExpenses = async () => {
         setIsLoading(true)
@@ -120,9 +126,33 @@ export default function ExpensesPage() {
             <div className="flex-1">
                 <DashboardHeader />
                 <main className="p-4 lg:p-6 space-y-4 lg:space-y-6 pt-20 lg:pt-6">
-                    <div>
-                        <h2 className="text-xl lg:text-2xl font-bold">Expense Management</h2>
-                        <p className="text-muted-foreground text-sm lg:text-base">Track all business expenses this month</p>
+                    <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
+                        <div>
+                            <h2 className="text-xl lg:text-2xl font-bold">Expense Management</h2>
+                            <p className="text-muted-foreground text-sm lg:text-base">Track all business expenses</p>
+                        </div>
+                        <div className="flex flex-col sm:flex-row gap-4">
+                            <div>
+                                <Label htmlFor="start-date" className="text-sm">From</Label>
+                                <Input
+                                    id="start-date"
+                                    type="date"
+                                    value={startDate}
+                                    onChange={(e) => setStartDate(e.target.value)}
+                                    className="mt-1 text-sm"
+                                />
+                            </div>
+                            <div>
+                                <Label htmlFor="end-date" className="text-sm">To</Label>
+                                <Input
+                                    id="end-date"
+                                    type="date"
+                                    value={endDate}
+                                    onChange={(e) => setEndDate(e.target.value)}
+                                    className="mt-1 text-sm"
+                                />
+                            </div>
+                        </div>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
