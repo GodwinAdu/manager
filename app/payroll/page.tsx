@@ -57,6 +57,7 @@ export default function PayrollPage() {
             const response = await fetch("/api/payroll/bulk-process", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ month: selectedMonth }),
             })
             if (response.ok) {
                 const data = await response.json()

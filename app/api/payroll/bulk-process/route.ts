@@ -10,9 +10,10 @@ export const POST = requireRole(["admin"])(async (request: NextRequest, user: IU
   try {
     await connectToDB()
 
-    const now = new Date()
-    const month = new Date(now.getFullYear(), now.getMonth(), 1)
-    const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1)
+    const body = await request.json().catch(() => ({}))
+    const targetDate = body.month ? new Date(body.month) : new Date()
+    const month = new Date(targetDate.getFullYear(), targetDate.getMonth(), 1)
+    const nextMonth = new Date(targetDate.getFullYear(), targetDate.getMonth() + 1, 1)
 
     // Get payroll settings
     let settings = await PayrollSettings.findOne()

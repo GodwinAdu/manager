@@ -37,7 +37,7 @@ export const POST = requireRole(["admin"])(async (request: NextRequest, user: IU
   try {
     await connectToDB()
 
-    const { userId, daysWorked, serviceCharge } = await request.json()
+    const { userId, daysWorked, serviceCharge, month: monthParam } = await request.json()
 
     if (!userId || !daysWorked) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
@@ -48,8 +48,8 @@ export const POST = requireRole(["admin"])(async (request: NextRequest, user: IU
       return NextResponse.json({ error: "User not found" }, { status: 404 })
     }
 
-    const now = new Date()
-    const month = new Date(now.getFullYear(), now.getMonth(), 1)
+    const targetDate = monthParam ? new Date(monthParam) : new Date()
+    const month = new Date(targetDate.getFullYear(), targetDate.getMonth(), 1)
 
     // Check if payroll already exists
     let payroll = await Payroll.findOne({ userId, month })

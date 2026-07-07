@@ -1,6 +1,6 @@
 import Attendance from "@/lib/models/attendance.models"
 import { connectToDB } from "@/lib/mongoose"
-import { requireAuth } from "@/lib/auth-middleware"
+import { requireAuth, requireRole } from "@/lib/auth-middleware"
 import { type NextRequest, NextResponse } from "next/server"
 import { type IUser } from "@/lib/models/user.models"
 
@@ -93,5 +93,65 @@ export const POST = requireAuth(async (request: NextRequest, user: IUser) => {
     return NextResponse.json(populatedAttendance)
   } catch (error) {
     return NextResponse.json({ error: "Failed to update attendance" }, { status: 500 })
+  }
+})
+
+export const PATCH = requireRole(["admin"])(async (request: NextRequest, user: IUser) => {
+  try {
+    await connectToDB()
+
+    const { attendanceId, status, checkInTime, checkOutTime } = await request.json()
+
+    if (!attendanceId) {
+      return NextResponse.json({ error: "Attendance ID is required" }, { status: 400 })
+    }
+
+    const updates: Record<string, unknown> = {}
+    if (status) updates.status = status
+    if (checkInTime !== undefined) updates.checkInTime = checkInTime ? new Date(checkInTime) : null
+    if (checkOutTime !== undefined) updates.checkOutTime = checkOutTime ? new Date(checkOutTime) : null
+
+    // Recalculate working hours if both times are present
+    if (checkInTime && checkOutTime) {
+      const hours = (new Date(checkOutTime).getTime() - new Date(checkInTime).getTime()) / (1000 * 60 * 60)
+      updates.workingHours = Math.round(hours * 100) / 100
+    } else if (checkInTime && !checkOutTime) {
+      updates.workingHours = 0
+    }
+
+    const attendance = await Attendance.findByIdAndUpdate(attendanceId, updates, { new: true }).populate(
+      "userId",
+      "name email",
+    )
+
+    if (!attendance) {
+      return NextResponse.json({ error: "Attendance record not found" }, { status: 404 })
+    }
+
+    return NextResponse.json(attendance)
+  } catch (error) {
+    return NextResponse.json({ error: "Failed to update attendance record" }, { status: 500 })
+  }
+})
+
+export const DELETE = requireRole(["admin"])(async (request: NextRequest, user: IUser) => {
+  try {
+    await connectToDB()
+
+    const attendanceId = request.nextUrl.searchParams.get("id")
+
+    if (!attendanceId) {
+      return NextResponse.json({ error: "Attendance ID is required" }, { status: 400 })
+    }
+
+    const attendance = await Attendance.findByIdAndDelete(attendanceId)
+
+    if (!attendance) {
+      return NextResponse.json({ error: "Attendance record not found" }, { status: 404 })
+    }
+
+    return NextResponse.json({ message: "Attendance record deleted successfully" })
+  } catch (error) {
+    return NextResponse.json({ error: "Failed to delete attendance record" }, { status: 500 })
   }
 })

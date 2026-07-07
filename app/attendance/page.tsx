@@ -8,6 +8,551 @@ import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog"
+
+interface User {
+  _id: string
+  id?: string
+  name: string
+  email: string
+  role: string
+  status: string
+}
+
+interface AttendanceRecord {
+  _id: string
+  odbc_id?: string
+  userId: User | string
+  date: string
+  checkInTime?: string
+  checkOutTime?: string
+  status: "present" | "absent" | "late"
+  workingHours: number
+}
+
+interface EditForm {
+  status: "present" | "absent" | "late"
+  checkInTime: string
+  checkOutTime: string
+}
+
+export default function AttendancePage() {
+  const [attendance, setAttendance] = useState<AttendanceRecord[]>([])
+  const [workers, setWorkers] = useState<User[]>([])
+  const [currentUser, setCurrentUser] = useState<User | null>(null)
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0])
+  const [isLoading, setIsLoading] = useState(false)
+  const [editRecord, setEditRecord] = useState<AttendanceRecord | null>(null)
+  const [editForm, setEditForm] = useState<EditForm>({ status: "present", checkInTime: "", checkOutTime: "" })
+  const [isSaving, setIsSaving] = useState(false)
+
+  const fetchCurrentUser = async () => {
+    try {
+      const session = localStorage.getItem("userSession")
+      if (session) {
+        const user = JSON.parse(session)
+        setCurrentUser(user)
+      }
+    } catch (error) {
+      console.error("Failed to get current user", error)
+    }
+  }
+
+  const fetchWorkers = async () => {
+    try {
+      const response = await fetch("/api/users?status=active")
+      if (response.ok) {
+        const data = await response.json()
+        setWorkers(data)
+      }
+    } catch (error) {
+      console.error("Failed to fetch workers", error)
+    }
+  }
+
+  const fetchAttendance = async (date: string) => {
+    setIsLoading(true)
+    try {
+      const response = await fetch(`/api/attendance?date=${date}`)
+      if (response.ok) {
+        const data = await response.json()
+        setAttendance(data)
+      }
+    } catch (error) {
+      console.error("Failed to fetch attendance", error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchCurrentUser()
+    fetchWorkers()
+    fetchAttendance(selectedDate)
+  }, [selectedDate])
+
+  const handleCheckIn = async (userId?: string) => {
+    try {
+      const response = await fetch("/api/attendance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, action: "check-in", date: selectedDate }),
+      })
+      if (response.ok) {
+        fetchAttendance(selectedDate)
+      }
+    } catch (error) {
+      console.error("Check-in failed", error)
+    }
+  }
+
+  const handleCheckOut = async (userId?: string) => {
+    try {
+      const response = await fetch("/api/attendance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, action: "check-out", date: selectedDate }),
+      })
+      if (response.ok) {
+        fetchAttendance(selectedDate)
+      }
+    } catch (error) {
+      console.error("Check-out failed", error)
+    }
+  }
+
+  const handleMarkAbsent = async (userId: string) => {
+    try {
+      const response = await fetch("/api/attendance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, action: "mark-absent", date: selectedDate }),
+      })
+      if (response.ok) {
+        fetchAttendance(selectedDate)
+      }
+    } catch (error) {
+      console.error("Mark absent failed", error)
+    }
+  }
+
+  const openEditDialog = (record: AttendanceRecord) => {
+    // Only open edit for saved records (not temp placeholders)
+    if (record._id.startsWith("temp-")) return
+    const toTimeInput = (iso?: string) => {
+      if (!iso) return ""
+      const d = new Date(iso)
+      return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`
+    }
+    setEditRecord(record)
+    setEditForm({
+      status: record.status,
+      checkInTime: toTimeInput(record.checkInTime),
+      checkOutTime: toTimeInput(record.checkOutTime),
+    })
+  }
+
+  const handleEditSave = async () => {
+    if (!editRecord) return
+    setIsSaving(true)
+    try {
+      // Combine selectedDate with the time inputs to build full ISO strings
+      const toISO = (timeStr: string) => {
+        if (!timeStr) return null
+        const [h, m] = timeStr.split(":").map(Number)
+        const d = new Date(editRecord.date)
+        d.setHours(h, m, 0, 0)
+        return d.toISOString()
+      }
+
+      const response = await fetch("/api/attendance", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          attendanceId: editRecord._id,
+          status: editForm.status,
+          checkInTime: toISO(editForm.checkInTime),
+          checkOutTime: toISO(editForm.checkOutTime),
+        }),
+      })
+      if (response.ok) {
+        setEditRecord(null)
+        fetchAttendance(selectedDate)
+      }
+    } catch (error) {
+      console.error("Edit save failed", error)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleDelete = async (attendanceId: string) => {
+    if (!confirm("Delete this attendance record?")) return
+    try {
+      const response = await fetch(`/api/attendance?id=${attendanceId}`, { method: "DELETE" })
+      if (response.ok) {
+        fetchAttendance(selectedDate)
+      }
+    } catch (error) {
+      console.error("Delete failed", error)
+    }
+  }
+
+  const getAttendanceList = () => {
+    if (currentUser?.role === "worker") {
+      const userAttendance = attendance.find(a => {
+        const userId = typeof a.userId === "object" ? a.userId._id : a.userId
+        return userId === (currentUser.id || currentUser._id)
+      })
+      if (userAttendance) return [userAttendance]
+      return [{
+        _id: `temp-${currentUser.id || currentUser._id}`,
+        userId: currentUser,
+        date: selectedDate,
+        status: "absent" as const,
+        workingHours: 0,
+      }]
+    }
+
+    const attendanceMap = new Map(attendance.map((a) => {
+      const userId = typeof a.userId === "object" ? a.userId._id : a.userId
+      return [userId, a]
+    }))
+    return workers.map((worker) => {
+      const record = attendanceMap.get(worker._id)
+      if (record) return record
+      return {
+        _id: `temp-${worker._id}`,
+        userId: worker,
+        date: selectedDate,
+        status: "absent" as const,
+        workingHours: 0,
+      }
+    })
+  }
+
+  const attendanceList = getAttendanceList()
+  const presentCount = attendance.filter((a) => a.status === "present" || a.status === "late").length
+  const absentCount = currentUser?.role === "worker" ? (presentCount > 0 ? 0 : 1) : workers.length - presentCount
+
+  return (
+    <div className="flex">
+      <SidebarNav />
+      <div className="flex-1">
+        <DashboardHeader />
+        <main className="p-4 lg:p-6 space-y-4 lg:space-y-6 pt-20 lg:pt-6">
+          <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
+            <div>
+              <h2 className="text-xl lg:text-2xl font-bold">
+                {currentUser?.role === "worker" ? "My Attendance" : "Attendance Management"}
+              </h2>
+              <p className="text-muted-foreground text-sm lg:text-base">
+                {currentUser?.role === "worker" ? "Track your check-ins and check-outs" : "Track employee check-ins and check-outs"}
+              </p>
+            </div>
+            <div className="flex gap-4">
+              <div>
+                <Label htmlFor="date-filter" className="text-sm">Select Date</Label>
+                <Input
+                  id="date-filter"
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  className="mt-1 text-sm"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium">
+                  {currentUser?.role === "worker" ? "My Status" : "Total Users"}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl lg:text-3xl font-bold">
+                  {currentUser?.role === "worker" ? (presentCount > 0 ? "Present" : "Absent") : workers.length}
+                </div>
+              </CardContent>
+            </Card>
+
+            {currentUser?.role === "admin" && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium">Present Today</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl lg:text-3xl font-bold text-primary">{presentCount}</div>
+                </CardContent>
+              </Card>
+            )}
+
+            {currentUser?.role === "admin" && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium">Absent</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl lg:text-3xl font-bold text-destructive">{absentCount}</div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Attendance Records</CardTitle>
+              <CardDescription>
+                {new Date(selectedDate).toLocaleDateString("en-US", {
+                  weekday: "long",
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                })}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <div className="text-center py-8">Loading...</div>
+              ) : (currentUser?.role === "admin" && workers.length === 0) ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  No active users found. Add users from the Users page first.
+                </div>
+              ) : (
+                <>
+                  {/* Mobile Card Layout */}
+                  <div className="block md:hidden space-y-4">
+                    {attendanceList.map((record) => {
+                      const hasCheckIn = !!record.checkInTime
+                      const hasCheckOut = !!record.checkOutTime
+                      const userId = typeof record.userId === "object" ? record.userId._id : record.userId
+                      const isSaved = !record._id.startsWith("temp-")
+
+                      return (
+                        <Card key={record._id} className="p-4">
+                          <div className="space-y-3">
+                            <div className="flex justify-between items-start">
+                              <h3 className="font-medium text-sm">
+                                {typeof record.userId === "object" ? record.userId?.name : "Unknown"}
+                              </h3>
+                              <span
+                                className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                  record.status === "present"
+                                    ? "bg-green-100 text-green-800"
+                                    : record.status === "late"
+                                      ? "bg-yellow-100 text-yellow-800"
+                                      : "bg-red-100 text-red-800"
+                                }`}
+                              >
+                                {record.status.charAt(0).toUpperCase() + record.status.slice(1)}
+                              </span>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2 text-xs">
+                              <div>
+                                <span className="text-muted-foreground">Check-In:</span>
+                                <div className="font-medium">
+                                  {record.checkInTime ? new Date(record.checkInTime).toLocaleTimeString() : "-"}
+                                </div>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground">Check-Out:</span>
+                                <div className="font-medium">
+                                  {record.checkOutTime ? new Date(record.checkOutTime).toLocaleTimeString() : "-"}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="text-xs">
+                              <span className="text-muted-foreground">Hours:</span>
+                              <span className="font-medium ml-1">{record.workingHours?.toFixed(2) || "0.00"} hrs</span>
+                            </div>
+
+                            <div className="flex flex-wrap gap-2">
+                              {!hasCheckIn && (
+                                <>
+                                  <Button size="sm" onClick={() => handleCheckIn(currentUser?.role === "worker" ? undefined : typeof userId === "string" ? userId : undefined)} className="text-xs flex-1">
+                                    Check In
+                                  </Button>
+                                  {currentUser?.role === "admin" && (
+                                    <Button size="sm" variant="outline" onClick={() => handleMarkAbsent(typeof userId === "string" ? userId : "")} className="text-xs flex-1">
+                                      Absent
+                                    </Button>
+                                  )}
+                                </>
+                              )}
+                              {hasCheckIn && !hasCheckOut && (
+                                <Button size="sm" variant="outline" onClick={() => handleCheckOut(currentUser?.role === "worker" ? undefined : typeof userId === "string" ? userId : undefined)} className="text-xs flex-1">
+                                  Check Out
+                                </Button>
+                              )}
+                              {currentUser?.role === "admin" && isSaved && (
+                                <>
+                                  <Button size="sm" variant="outline" onClick={() => openEditDialog(record)} className="text-xs flex-1">
+                                    Edit
+                                  </Button>
+                                  <Button size="sm" variant="destructive" onClick={() => handleDelete(record._id)} className="text-xs flex-1">
+                                    Delete
+                                  </Button>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </Card>
+                      )
+                    })}
+                  </div>
+
+                  {/* Desktop Table Layout */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="min-w-[120px]">Employee</TableHead>
+                          <TableHead className="min-w-[80px]">Status</TableHead>
+                          <TableHead className="min-w-[100px]">Check-In</TableHead>
+                          <TableHead className="min-w-[100px]">Check-Out</TableHead>
+                          <TableHead className="min-w-[80px]">Hours</TableHead>
+                          <TableHead className="min-w-[200px]">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {attendanceList.map((record) => {
+                          const hasCheckIn = !!record.checkInTime
+                          const hasCheckOut = !!record.checkOutTime
+                          const userId = typeof record.userId === "object" ? record.userId._id : record.userId
+                          const isSaved = !record._id.startsWith("temp-")
+
+                          return (
+                            <TableRow key={record._id}>
+                              <TableCell className="font-medium">
+                                {typeof record.userId === "object" ? record.userId?.name : "Unknown"}
+                              </TableCell>
+                              <TableCell>
+                                <span
+                                  className={`px-3 py-1 rounded-full text-xs font-medium ${
+                                    record.status === "present"
+                                      ? "bg-green-100 text-green-800"
+                                      : record.status === "late"
+                                        ? "bg-yellow-100 text-yellow-800"
+                                        : "bg-red-100 text-red-800"
+                                  }`}
+                                >
+                                  {record.status.charAt(0).toUpperCase() + record.status.slice(1)}
+                                </span>
+                              </TableCell>
+                              <TableCell>
+                                {record.checkInTime ? new Date(record.checkInTime).toLocaleTimeString() : "-"}
+                              </TableCell>
+                              <TableCell>
+                                {record.checkOutTime ? new Date(record.checkOutTime).toLocaleTimeString() : "-"}
+                              </TableCell>
+                              <TableCell>{record.workingHours?.toFixed(2) || "0.00"} hrs</TableCell>
+                              <TableCell>
+                                <div className="flex flex-wrap gap-1">
+                                  {!hasCheckIn && (
+                                    <>
+                                      <Button size="sm" onClick={() => handleCheckIn(currentUser?.role === "worker" ? undefined : typeof userId === "string" ? userId : undefined)} className="text-xs">
+                                        Check In
+                                      </Button>
+                                      {currentUser?.role === "admin" && (
+                                        <Button size="sm" variant="outline" onClick={() => handleMarkAbsent(typeof userId === "string" ? userId : "")} className="text-xs">
+                                          Absent
+                                        </Button>
+                                      )}
+                                    </>
+                                  )}
+                                  {hasCheckIn && !hasCheckOut && (
+                                    <Button size="sm" variant="outline" onClick={() => handleCheckOut(currentUser?.role === "worker" ? undefined : typeof userId === "string" ? userId : undefined)} className="text-xs">
+                                      Check Out
+                                    </Button>
+                                  )}
+                                  {currentUser?.role === "admin" && isSaved && (
+                                    <>
+                                      <Button size="sm" variant="outline" onClick={() => openEditDialog(record)} className="text-xs">
+                                        Edit
+                                      </Button>
+                                      <Button size="sm" variant="destructive" onClick={() => handleDelete(record._id)} className="text-xs">
+                                        Delete
+                                      </Button>
+                                    </>
+                                  )}
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          )
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </main>
+      </div>
+
+      {/* Edit Dialog — admin only */}
+      <Dialog open={!!editRecord} onOpenChange={(open) => !open && setEditRecord(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              Edit Attendance —{" "}
+              {editRecord && typeof editRecord.userId === "object" ? editRecord.userId.name : ""}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1">
+              <Label htmlFor="edit-status">Status</Label>
+              <select
+                id="edit-status"
+                value={editForm.status}
+                onChange={(e) => setEditForm((f) => ({ ...f, status: e.target.value as EditForm["status"] }))}
+                className="w-full border border-border rounded px-3 py-2 bg-background text-sm"
+              >
+                <option value="present">Present</option>
+                <option value="late">Late</option>
+                <option value="absent">Absent</option>
+              </select>
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="edit-checkin">Check-In Time</Label>
+              <Input
+                id="edit-checkin"
+                type="time"
+                value={editForm.checkInTime}
+                onChange={(e) => setEditForm((f) => ({ ...f, checkInTime: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="edit-checkout">Check-Out Time</Label>
+              <Input
+                id="edit-checkout"
+                type="time"
+                value={editForm.checkOutTime}
+                onChange={(e) => setEditForm((f) => ({ ...f, checkOutTime: e.target.value }))}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditRecord(null)}>Cancel</Button>
+            <Button onClick={handleEditSave} disabled={isSaving}>
+              {isSaving ? "Saving..." : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}
 
 interface User {
   _id: string
